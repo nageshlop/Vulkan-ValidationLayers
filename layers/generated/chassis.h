@@ -2854,7 +2854,6 @@ typedef enum ValidationCheckEnables {
 } ValidationCheckEnables;
 
 typedef enum VkValidationFeatureEnable {
-    VK_VALIDATION_FEATURE_ENABLE_SHADER_DEBUG_PRINTF,
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION,
 } VkValidationFeatureEnable;
 
