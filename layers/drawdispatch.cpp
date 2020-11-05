@@ -807,6 +807,15 @@ bool CoreChecks::PreCallValidateCmdDrawIndirectByteCountEXT(VkCommandBuffer comm
                                                             VkDeviceSize counterBufferOffset, uint32_t counterOffset,
                                                             uint32_t vertexStride) const {
     bool skip = false;
+    if (!enabled_features.transform_feedback_features.transformFeedback) {
+        skip |= LogError(commandBuffer, "VUID-vkCmdDrawIndirectByteCountEXT-transformFeedback-02287",
+                         "%s: transformFeedback feature is not enabled.", "vkCmdDrawIndirectByteCountEXT()");
+    }
+    if (device_extensions.vk_ext_transform_feedback && !phys_dev_ext_props.transform_feedback_props.transformFeedbackDraw) {
+        skip |= LogError(commandBuffer, "VUID-vkCmdDrawIndirectByteCountEXT-transformFeedback-02288",
+                         "%s: VkPhysicalDeviceTransformFeedbackPropertiesEXT::transformFeedbackDraw is not supported",
+                         "vkCmdDrawIndirectByteCountEXT()");
+    }
     skip |= ValidateCmdDrawType(commandBuffer, false, VK_PIPELINE_BIND_POINT_GRAPHICS, CMD_DRAWINDIRECTBYTECOUNTEXT,
                                 "vkCmdDrawIndirectByteCountEXT()", VK_QUEUE_GRAPHICS_BIT);
     skip |= ValidateIndirectCmd(commandBuffer, counterBuffer, CMD_DRAWINDIRECTBYTECOUNTEXT, "vkCmdDrawIndirectByteCountEXT()");
