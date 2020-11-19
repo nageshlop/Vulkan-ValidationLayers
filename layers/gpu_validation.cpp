@@ -19,7 +19,6 @@
  */
 
 #include <climits>
-
 #include "gpu_validation.h"
 #include "spirv-tools/optimizer.hpp"
 #include "spirv-tools/instrument.hpp"
@@ -1218,7 +1217,7 @@ bool GpuAssisted::InstrumentShader(const VkShaderModuleCreateInfo *pCreateInfo, 
     Optimizer optimizer(target_env);
     optimizer.SetMessageConsumer(GpuConsoleMessageConsumer);
     optimizer.RegisterPass(CreateInstBindlessCheckPass(desc_set_bind_index, unique_shader_module_id, descriptor_indexing,
-                                                       descriptor_indexing, buffer_oob_enabled));
+                                                       descriptor_indexing, buffer_oob_enabled, buffer_oob_enabled));
     optimizer.RegisterPass(CreateAggressiveDCEPass());
     if ((device_extensions.vk_ext_buffer_device_address || device_extensions.vk_khr_buffer_device_address) && shaderInt64 &&
         enabled_features.core12.bufferDeviceAddress)
@@ -1670,8 +1669,9 @@ void GpuAssisted::AllocateValidationResources(const VkCommandBuffer cmd_buffer, 
                     if (!has_buffers && (descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
                                          descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
                                          descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-                                         descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)) {
-                        // Add texel buffers when spirv-tools supports them
+                                         descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
+                                         descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
+                                         descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)) {
                         has_buffers = true;
                     }
                 }
