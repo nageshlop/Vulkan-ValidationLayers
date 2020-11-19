@@ -204,6 +204,7 @@ class ResourceAccessState : public SyncStageAccess {
     VkPipelineStageFlags GetReadBarriers(const SyncStageAccessFlags &usage) const;
     SyncStageAccessFlags GetWriteBarriers() const { return write_barriers; }
 
+    const ResourceUsageTag& GetWriteTag() const { return write_tag; }
   private:
     static constexpr VkPipelineStageFlags kInvalidAttachmentStage = ~VkPipelineStageFlags(0);
     bool IsWriteHazard(SyncStageAccessFlags usage) const { return (usage & ~write_barriers).any(); }
@@ -409,6 +410,7 @@ class AccessContext {
                                    const std::vector<const IMAGE_VIEW_STATE *> &attachment_views, const char *func_name,
                                    uint32_t subpass) const;
 
+    void SetStartTag(const ResourceUsageTag &tag) { start_tag_ = tag; }
   private:
     HazardResult DetectHazard(AddressType type, SyncStageAccessIndex usage_index, const ResourceAccessRange &range) const;
     HazardResult DetectBarrierHazard(AddressType type, SyncStageAccessIndex current_usage, VkPipelineStageFlags src_exec_scope,
@@ -428,9 +430,10 @@ class AccessContext {
     MapArray access_state_maps_;
     std::vector<TrackBack> prev_;
     std::vector<TrackBack *> prev_by_subpass_;
-    std::vector<AccessContext *> async_;
+    std::vector<const AccessContext *> async_;
     TrackBack src_external_;
     TrackBack dst_external_;
+    ResourceUsageTag start_tag_;
 };
 
 class RenderPassAccessContext {

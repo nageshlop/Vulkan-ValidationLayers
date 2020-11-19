@@ -478,8 +478,7 @@ AccessContext::AccessContext(uint32_t subpass, VkQueueFlags queue_flags,
 
     async_.reserve(subpass_dep.async.size());
     for (const auto async_subpass : subpass_dep.async) {
-        // TODO -- review why async is storing non-const
-        async_.emplace_back(const_cast<AccessContext *>(&contexts[async_subpass]));
+        async_.emplace_back(&contexts[async_subpass]);
     }
     if (subpass_dep.barrier_from_external.size()) {
         src_external_ = TrackBack(external_context, queue_flags, subpass_dep.barrier_from_external);
@@ -564,7 +563,13 @@ HazardResult AccessContext::DetectAsyncHazard(AddressType type, const Detector &
 
     HazardResult hazard;
     for (auto pos = from; pos != to && !hazard.hazard; ++pos) {
-        hazard = detector.DetectAsync(pos);
+        const auto &write_tag = pos->second.GetWriteTag();
+        // Async checks need to not go back further than the start of the subpass, as we only want to find hazards between the async
+        // subpasses.  Anything older than that should have been checked at the start of each subpass, taking into account all of
+        // the raster ordering rules.
+        if (write_tag.index >= start_tag_.index) {
+            hazard = detector.DetectAsync(pos);
+        }
     }
 
     return hazard;
@@ -2173,6 +2178,7 @@ void RenderPassAccessContext::RecordBeginRenderPass(const SyncValidator &state, 
     }
     attachment_views_ = state.GetCurrentAttachmentViews(cb_state);
 
+    subpass_contexts_[current_subpass_].SetStartTag(tag);
     RecordLayoutTransitions(tag);
     RecordLoadOperations(cb_state.activeRenderPassBeginInfo.renderArea, tag);
 }
@@ -2184,6 +2190,7 @@ void RenderPassAccessContext::RecordNextSubpass(const VkRect2D &render_area, con
 
     current_subpass_++;
     assert(current_subpass_ < subpass_contexts_.size());
+    subpass_contexts_[current_subpass_].SetStartTag(tag);
     RecordLayoutTransitions(tag);
     RecordLoadOperations(render_area, tag);
 }
