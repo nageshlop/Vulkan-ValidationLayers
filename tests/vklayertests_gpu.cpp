@@ -596,7 +596,8 @@ TEST_F(VkGpuAssistedLayerTest, GpuBufferOOB) {
                                                   {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, nullptr},
                                                   {3, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_ALL, nullptr},
                                                   {4, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_ALL, nullptr},
-                                                  {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, nullptr}});
+                                                  {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, nullptr},
+                                                  {6, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_ALL, nullptr}});
 
     const VkPipelineLayoutObj pipeline_layout(m_device, {&descriptor_set.layout_});
     descriptor_set.WriteDescriptorBufferInfo(0, offset_buffer.handle(), 4);
@@ -604,7 +605,7 @@ TEST_F(VkGpuAssistedLayerTest, GpuBufferOOB) {
     descriptor_set.WriteDescriptorBufferInfo(2, VK_NULL_HANDLE, VK_WHOLE_SIZE, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
     descriptor_set.WriteDescriptorBufferView(3, uniform_buffer_view, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER);
     descriptor_set.WriteDescriptorBufferView(4, storage_buffer_view, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER);
-    // Not updating binding 5
+    // Not updating binding 5 or 6
     descriptor_set.UpdateDescriptorSets();
     static const char vertshader[] =
         "#version 450\n"
@@ -614,6 +615,7 @@ TEST_F(VkGpuAssistedLayerTest, GpuBufferOOB) {
         "layout(set = 0, binding = 3) uniform samplerBuffer u_buffer;\n"                   // texel_buffer[4]
         "layout(set = 0, binding = 4, r32f) uniform imageBuffer s_buffer;\n"               // texel_buffer[4]
         "layout(set = 0, binding = 5) buffer BadBuffer { uint data[]; } uninitialized;\n"  // data[4]
+        "layout(set = 0, binding = 6, r32f) uniform imageBuffer uninit_buffer;\n"
         "void main() {\n"
         "    vec4 x;\n"
         "    if (u_index.index[0] == 8)\n"
@@ -630,6 +632,8 @@ TEST_F(VkGpuAssistedLayerTest, GpuBufferOOB) {
         "        imageStore(s_buffer, 5, x);\n"
         "    else if (u_index.index[0] == 5)\n"
         "        Data.data[0] = uninitialized.data[0];\n"
+        "    else if (u_index.index[0] == 6)\n"
+        "        x = imageLoad(uninit_buffer, 5);\n"
         "}\n";
 
     VkShaderObj vs(m_device, vertshader, VK_SHADER_STAGE_VERTEX_BIT, this);
@@ -666,6 +670,7 @@ TEST_F(VkGpuAssistedLayerTest, GpuBufferOOB) {
     tests.push_back({false, 3, "Descriptor size is 4 and highest byte accessed was 5"});
     tests.push_back({false, 4, "Descriptor size is 4 and highest byte accessed was 5"});
     tests.push_back({false, 5, " Descriptor index 0 is uninitialized"});
+    tests.push_back({ false, 6, " Descriptor index 0 is uninitialized" });
 
     for (const auto &test : tests) {
         uint32_t *data = (uint32_t *)offset_buffer.memory().map();
