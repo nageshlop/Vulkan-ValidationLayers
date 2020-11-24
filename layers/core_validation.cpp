@@ -1102,7 +1102,11 @@ bool CoreChecks::ValidateCmdBufDrawState(const CMD_BUFFER_STATE *cb_node, CMD_TY
                         std::string image_desc = "Image is ";
                         image_desc.append(string_VkImageUsageFlagBits(subpass.usage));
                         // Because inputAttachment is read only, it doesn't need to care protected command buffer case.
-                        if (subpass.usage != VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) {
+                        // Some CMD_TYPE could not be protected.
+                        if (subpass.usage != VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT &&
+                            (cmd_type != CMD_DRAWINDIRECT && cmd_type != CMD_DRAWINDIRECT && cmd_type != CMD_DRAWINDIRECTCOUNT &&
+                             cmd_type != CMD_DRAWINDEXEDINDIRECT && cmd_type != CMD_DRAWMESHTASKSINDIRECTNV &&
+                             cmd_type != CMD_DRAWMESHTASKSINDIRECTCOUNTNV && cmd_type != CMD_DISPATCHINDIRECT)) {
                             result |= ValidateUnprotectedImage(cb_node, view_state->image_state.get(), function,
                                                                 vuid.protected_command_buffer, image_desc.c_str());
                         }
