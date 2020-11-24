@@ -1333,7 +1333,22 @@ void ThreadSafety::PostCallRecordGetRandROutputDisplayEXT(
 
 #endif // VK_USE_PLATFORM_XLIB_XRANDR_EXT
 
+void ThreadSafety::PreCallRecordDeviceWaitIdle(
+    VkDevice                                    device) {
+    const auto snapshot = parent_instance->c_VkDevice.object_table.snapshot();
+    for (const auto &item : snapshot) {
+        StartReadObjectParentInstance(item.first, "vkDeviceWaitIdle");
+    }
+}
 
+void ThreadSafety::PostCallRecordDeviceWaitIdle(
+    VkDevice                                    device,
+    VkResult                                    result) {
+    const auto snapshot = parent_instance->c_VkDevice.object_table.snapshot();
+    for (const auto &item : snapshot) {
+        FinishReadObjectParentInstance(item.first, "vkDeviceWaitIdle");
+    }
+}
 """
 
 
@@ -1667,6 +1682,7 @@ void ThreadSafety::PostCallRecordGetRandROutputDisplayEXT(
             'vkGetDisplayModeProperties2KHR',
             'vkGetDisplayPlaneCapabilities2KHR',
             'vkGetRandROutputDisplayEXT',
+            'vkDeviceWaitIdle',
         ]
         if name == 'vkQueuePresentKHR' or (name in special_functions and self.source_file):
             return
